@@ -89,15 +89,17 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 			}
 			try {
 				if ("N".equalsIgnoreCase(acctClsFlg)) {
+					Map<String, Object> csvObjMap = csvObj.toMap();
 					couchBaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
 							+ couchBaseConfig.getGamCollectionName()
 							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_FLG = $ACCT_CLS_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
-							JsonObject.create().put("acid", acid).put("ACCT_CLS_FLG", csvObj.getString("ACCT_CLS_FLG"))
-									.put("ENTITY_CRE_FLG", csvObj.getString("ENTITY_CRE_FLG"))
-									.put("ACCT_CLS_FLG", csvObj.getString("ACCT_CLS_FLG"))
-									.put("ACCT_CLS_DATE", csvObj.getString("ACCT_CLS_DATE"))
-									.put("FREZ_CODE", csvObj.getString("FREZ_CODE"))
-									.put("TS_CNT", csvObj.getString("TS_CNT")));
+							JsonObject.create().put("acid", acid)
+									.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
+									.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
+									.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
+									.put("ACCT_CLS_DATE", csvObjMap.getOrDefault("ACCT_CLS_DATE", ""))
+									.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""))
+									.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", "0")));
 					logger.info("Successfully updated Data : {}", csvObj);
 					fileStoringLogicService.successfullUpdateFile(csvObj);
 				}
