@@ -61,8 +61,7 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 				listOfCSVFileData.add(json);
 			}
 
-			ExecutorService executor = Executors.newFixedThreadPool(5); // You can tune the pool size based on your use
-																		// case
+			ExecutorService executor = Executors.newFixedThreadPool(5);
 
 			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
 				List<JsonObject> batch = new ArrayList<>(
@@ -77,7 +76,7 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 			}
 
 			executor.shutdown();
-			executor.awaitTermination(10, TimeUnit.MINUTES);
+			executor.awaitTermination(10, TimeUnit.SECONDS);
 
 //			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
 //				List<JsonObject> batch = listOfCSVFileData.subList(i,
