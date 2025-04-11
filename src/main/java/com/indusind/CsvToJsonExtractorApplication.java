@@ -1,9 +1,14 @@
 package com.indusind;
 
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -18,6 +23,9 @@ import com.couchbase.client.java.json.JsonObject;
 import com.indusind.config.CouchbaseConfig;
 import com.indusind.service.FileStoringLogicService;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
+import com.opencsv.CSVWriterBuilder;
+import com.opencsv.ICSVWriter;
 
 @SpringBootApplication
 public class CsvToJsonExtractorApplication implements ApplicationContextAware {
@@ -52,17 +60,41 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 				logger.info("JsonOutput : {}", json.toString());
 				listOfCSVFileData.add(json);
 			}
+
+			ExecutorService executor = Executors.newFixedThreadPool(5); // You can tune the pool size based on your use
+																		// case
+
 			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
-				List<JsonObject> batch = listOfCSVFileData.subList(i,
-						Math.min(i + batchSize, listOfCSVFileData.size()));
+				List<JsonObject> batch = new ArrayList<>(
+						listOfCSVFileData.subList(i, Math.min(i + batchSize, listOfCSVFileData.size())));
 
-				List<String> acidList = batch.stream().map(obj -> obj.getString("ACID")).collect(Collectors.toList());
+				executor.submit(() -> {
+					List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
+							.collect(Collectors.toList());
 
-				updateGamData(acidList, batch);
+					updateGamData(acidList, batch);
+				});
 			}
+
+			executor.shutdown();
+			executor.awaitTermination(10, TimeUnit.MINUTES);
+
+//			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
+//				List<JsonObject> batch = listOfCSVFileData.subList(i,
+//						Math.min(i + batchSize, listOfCSVFileData.size()));
+//
+//				List<String> acidList = batch.stream().map(obj -> obj.getString("ACID")).collect(Collectors.toList());
+//
+//				updateGamData(acidList, batch);
+//			}
+
 //			List<String> acidList = listOfCSVFileData.stream().map(obj -> obj.getString("ACID"))
 //					.collect(Collectors.toList());
 //			updateGamData(acidList, listOfCSVFileData);
+
+//			CouchbaseConfig couchBaseConfig = context.getBean(CouchbaseConfig.class);
+//			writeToCsv(couchBaseConfig.getCustomerMasterV6Scope().query("SELECT fin_gam.* FROM fin_gam").rowsAsObject(),
+//					System.getProperty("user.dir") + "/gamJsonfile.csv");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -92,11 +124,10 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 					Map<String, Object> csvObjMap = csvObj.toMap();
 					couchBaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
 							+ couchBaseConfig.getGamCollectionName()
-							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_FLG = $ACCT_CLS_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
+							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
 							JsonObject.create().put("acid", acid)
 									.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
 									.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
-									.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
 									.put("ACCT_CLS_DATE", csvObjMap.getOrDefault("ACCT_CLS_DATE", ""))
 									.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""))
 									.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", "0")));
@@ -109,6 +140,31 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 			}
 		}
 
+	}
+
+	public static void writeToCsv(List<JsonObject> dataList, String filePath) {
+		try (ICSVWriter writer = new CSVWriterBuilder(new FileWriter(filePath))
+				.withQuoteChar(CSVWriter.NO_QUOTE_CHARACTER).build()) {
+
+			// Write header
+			String[] header = { "ACID", "ENTITY_CRE_FLG", "ACCT_CLS_FLG", "ACCT_CLS_DATE", "FREZ_CODE", "TS_CNT" };
+			writer.writeNext(header);
+
+			// Write rows
+			for (JsonObject obj : dataList) {
+				String[] row = { String.valueOf(obj.get("acid")),
+						obj.getString("ENTITY_CRE_FLG") != null ? obj.getString("ENTITY_CRE_FLG") : "",
+						obj.getString("ACCT_CLS_FLG") != null ? obj.getString("ACCT_CLS_FLG") : "",
+						obj.getString("ACCT_CLS_DATE") != null ? obj.getString("ACCT_CLS_DATE") : "",
+						obj.getString("FREZ_CODE") != null ? obj.getString("FREZ_CODE") : "",
+						String.valueOf(obj.get("TS_CNT")) };
+				writer.writeNext(row);
+			}
+
+			logger.info("CSV file written to: {}" + filePath);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
