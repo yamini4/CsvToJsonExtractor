@@ -62,7 +62,7 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 				listOfCSVFileData.add(json);
 			}
 			logger.info("listOfCSVFileData extraction is done");
-			ExecutorService executor = Executors.newFixedThreadPool(25);
+			ExecutorService executor = Executors.newFixedThreadPool(20);
 
 			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
 				int fromIndex = i;
