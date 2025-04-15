@@ -43,7 +43,8 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 
 	public static void main(String[] args) {
 		SpringApplication.run(CsvToJsonExtractorApplication.class, args);
-		String csvFile = "/gamJsonfile.csv";
+//		CouchbaseConfig couchBaseConfig = context.getBean(CouchbaseConfig.class);
+		String csvFile = context.getBean(CouchbaseConfig.class).getCsvFileName();
 		List<JsonObject> listOfCSVFileData = new ArrayList<>();
 
 		try (CSVReader reader = new CSVReader(new FileReader(System.getProperty("user.dir") + csvFile))) {
@@ -61,7 +62,7 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 				listOfCSVFileData.add(json);
 			}
 			logger.info("listOfCSVFileData extraction is done");
-			ExecutorService executor = Executors.newFixedThreadPool(10);
+			ExecutorService executor = Executors.newFixedThreadPool(25);
 
 			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
 				int fromIndex = i;

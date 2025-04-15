@@ -39,6 +39,10 @@ public class CouchbaseConfig {
 	@Value("${spring.couchbase.collection.fin_gam.name}")
 	private String gamCollectionName;
 
+	@Getter
+	@Value("${csvFileName}")
+	private String csvFileName;
+
 	private Cluster cluster;
 	private Bucket iCacheBucket;
 	private Scope indusauthScope;
