@@ -57,35 +57,32 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 					json.put(headers[i], row[i]);
 				}
 
-				logger.info("JsonOutput : {}", json.toString());
+//				logger.info("JsonOutput : {}", json.toString());
 				listOfCSVFileData.add(json);
 			}
-
-			ExecutorService executor = Executors.newFixedThreadPool(5);
+			logger.info("listOfCSVFileData extraction is done");
+			ExecutorService executor = Executors.newFixedThreadPool(10);
 
 			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
-				List<JsonObject> batch = new ArrayList<>(
-						listOfCSVFileData.subList(i, Math.min(i + batchSize, listOfCSVFileData.size())));
-
+				int fromIndex = i;
+				int toIndex = Math.min(i + batchSize, listOfCSVFileData.size());
+				List<JsonObject> batch = new ArrayList<>(listOfCSVFileData.subList(fromIndex, toIndex));
 				executor.submit(() -> {
-					List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
-							.collect(Collectors.toList());
-
-					updateGamData(acidList, batch);
+					try {
+						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
+								.collect(Collectors.toList());
+						updateGamData(acidList, batch);
+					} catch (Exception e) {
+						logger.error("Error processing batch from index {} to {}: {}", fromIndex, toIndex,
+								e.getMessage(), e);
+					}
 				});
+				logger.info("Submitted batch from index {} to {}", fromIndex, toIndex);
 			}
 
 			executor.shutdown();
-			executor.awaitTermination(10, TimeUnit.SECONDS);
-
-//			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
-//				List<JsonObject> batch = listOfCSVFileData.subList(i,
-//						Math.min(i + batchSize, listOfCSVFileData.size()));
-//
-//				List<String> acidList = batch.stream().map(obj -> obj.getString("ACID")).collect(Collectors.toList());
-//
-//				updateGamData(acidList, batch);
-//			}
+			executor.awaitTermination(1, TimeUnit.HOURS);
+			logger.info("Process Completed");
 
 //			List<String> acidList = listOfCSVFileData.stream().map(obj -> obj.getString("ACID"))
 //					.collect(Collectors.toList());
@@ -130,7 +127,7 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 									.put("ACCT_CLS_DATE", csvObjMap.getOrDefault("ACCT_CLS_DATE", ""))
 									.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""))
 									.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", "0")));
-					logger.info("Successfully updated Data : {}", csvObj);
+//					logger.info("Successfully updated Data : {}", csvObj);
 					fileStoringLogicService.successfullUpdateFile(csvObj);
 				}
 			} catch (Exception e) {
