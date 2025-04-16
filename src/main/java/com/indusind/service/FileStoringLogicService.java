@@ -25,13 +25,15 @@ public class FileStoringLogicService {
 
 	public void successfullUpdateFile(JsonObject data) {
 		StringBuilder formattedContent = new StringBuilder();
-		formattedContent.append(String.format("%s", data)).append("\n");
+		formattedContent.append(String.format("%s", data));
+//		.append("\n");
 		createOrUpdateTextFile(formattedContent.toString(), System.getProperty("user.dir") + successDataFileName);
 	}
 
 	public void failedToUpdateFile(JsonObject data, String reasonForFailure) {
 		StringBuilder formattedContent = new StringBuilder();
-		formattedContent.append(String.format("%s, REASON_FOR_FAILURE:%s", data, reasonForFailure)).append("\n");
+		formattedContent.append(String.format("%s, REASON_FOR_FAILURE:%s", data, reasonForFailure));
+//		.append("\n");
 
 		createOrUpdateTextFile(formattedContent.toString(), System.getProperty("user.dir") + failedDataFileName);
 	}

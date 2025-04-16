@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationContextAware;
 import com.couchbase.client.java.json.JsonObject;
 import com.indusind.config.CouchbaseConfig;
 import com.indusind.service.FileStoringLogicService;
+import com.indusind.utility.Utility;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.CSVWriterBuilder;
@@ -119,17 +120,20 @@ public class CsvToJsonExtractorApplication implements ApplicationContextAware {
 			try {
 				if ("N".equalsIgnoreCase(acctClsFlg)) {
 					Map<String, Object> csvObjMap = csvObj.toMap();
+					JsonObject queryParam = JsonObject.create().put("acid", acid)
+							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
+							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
+							.put("ACCT_CLS_DATE",
+									Utility.getDateString(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE"),
+											"yyyy-MM-dd HH:mm:ss"))
+							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""))
+							.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", "0"));
 					couchBaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
 							+ couchBaseConfig.getGamCollectionName()
 							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
-							JsonObject.create().put("acid", acid)
-									.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
-									.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
-									.put("ACCT_CLS_DATE", csvObjMap.getOrDefault("ACCT_CLS_DATE", ""))
-									.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""))
-									.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", "0")));
+							queryParam);
 //					logger.info("Successfully updated Data : {}", csvObj);
-					fileStoringLogicService.successfullUpdateFile(csvObj);
+					fileStoringLogicService.successfullUpdateFile(queryParam);
 				}
 			} catch (Exception e) {
 				fileStoringLogicService.failedToUpdateFile(csvObj, e.getMessage());
