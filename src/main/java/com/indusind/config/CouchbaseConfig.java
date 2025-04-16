@@ -56,12 +56,17 @@ public class CouchbaseConfig {
 	public void init() {
 		try {
 			this.cluster = Cluster.connect(connectionString, userName, password);
-			this.cluster.waitUntilReady(Duration.ofSeconds(60));
+//			ClusterEnvironment env = ClusterEnvironment.builder().securityConfig(SecurityConfig.enableTls(true))
+//					.build();
+//			this.cluster = Cluster.connect(connectionString,
+//					ClusterOptions.clusterOptions(userName, password).environment(env));
 
+			this.cluster.waitUntilReady(Duration.ofSeconds(60));
 			this.iCacheBucket = cluster.bucket(bucketName);
 			this.iCacheBucket.waitUntilReady(Duration.ofSeconds(60));
 
 			this.indusauthScope = iCacheBucket.scope(scopeName);
+			logger.info("Couchbase connection established successfully.");
 		} catch (Exception e) {
 			logger.error("Error initializing Couchbase: {}", e.getMessage());
 			e.printStackTrace();
