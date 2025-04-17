@@ -3,6 +3,8 @@ package com.indusind.config;
 import java.time.Duration;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +16,6 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryOptions;
 
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 
 @Configuration
@@ -55,11 +56,25 @@ public class CouchbaseConfig {
 	@PostConstruct
 	public void init() {
 		try {
+			logger.info("init method invoked : {}", connectionString);
+//			ClusterEnvironment environment = ClusterEnvironment.builder()
+//				    .securityConfig(SecurityConfig
+//				        .enableTls(true)
+//				        .trustManagerFactory(TrustSource
+//				            .factory(InsecureTrustManagerFactory.INSTANCE)))
+//				    .build();
 			this.cluster = Cluster.connect(connectionString, userName, password);
 //			ClusterEnvironment env = ClusterEnvironment.builder().securityConfig(SecurityConfig.enableTls(true))
 //					.build();
 //			this.cluster = Cluster.connect(connectionString,
 //					ClusterOptions.clusterOptions(userName, password).environment(env));
+//
+
+//			ClusterEnvironment environment = ClusterEnvironment.builder().securityConfig(SecurityConfig.enableTls(true))
+//					.build();
+//
+//			Cluster cluster = Cluster.connect(connectionString,
+//					ClusterOptions.clusterOptions(userName, password).environment(environment));
 
 			this.cluster.waitUntilReady(Duration.ofSeconds(60));
 			this.iCacheBucket = cluster.bucket(bucketName);
@@ -71,10 +86,6 @@ public class CouchbaseConfig {
 			logger.error("Error initializing Couchbase: {}", e.getMessage());
 			e.printStackTrace();
 		}
-	}
-
-	public Cluster getCluster() {
-		return cluster;
 	}
 
 	public Scope getScope() {

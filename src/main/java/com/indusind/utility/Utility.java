@@ -7,13 +7,11 @@ import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class Utility {
-	private static final Logger logger = LoggerFactory.getLogger(Utility.class);
+//	private static final Logger logger = LoggerFactory.getLogger(Utility.class);
 
 	public static String getDateString(String dateString, String targetFormat) {
 		String[] formats = { "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd HH:mm:ss.SSS", "yyyy-MM-dd HH:mm:ss",
