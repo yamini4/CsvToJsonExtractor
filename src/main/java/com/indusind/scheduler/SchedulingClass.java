@@ -18,7 +18,9 @@ import org.springframework.stereotype.Component;
 import com.couchbase.client.java.json.JsonObject;
 import com.indusind.config.CouchbaseConfig;
 import com.indusind.service.DataUpdateService;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 
 @Component
 public class SchedulingClass {
@@ -26,9 +28,6 @@ public class SchedulingClass {
 
 	@Autowired
 	private CouchbaseConfig couchbaseConfig;
-//
-//	@Autowired
-//	private FileStoringLogicService fileStoringLogicService;
 
 	@Autowired
 	private DataUpdateService dataUpdateService;
@@ -42,7 +41,8 @@ public class SchedulingClass {
 		String csvFile = couchbaseConfig.getCsvFileName();
 		List<JsonObject> listOfCSVFileData = new ArrayList<>();
 
-		try (CSVReader reader = new CSVReader(new FileReader(System.getProperty("user.dir") + csvFile))) {
+		try (CSVReader reader = new CSVReaderBuilder(new FileReader(System.getProperty("user.dir") + csvFile))
+				.withCSVParser(new CSVParserBuilder().withSeparator(',').build()).build()) {
 			String[] headers = reader.readNext();
 			String[] row;
 
