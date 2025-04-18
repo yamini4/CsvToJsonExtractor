@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.indusind</groupId>
 	<artifactId>csvToJsonExtractor</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>CsvToJsonExtractor</name>
 	<description>Csv to Json Extractor</description>
 	<url />

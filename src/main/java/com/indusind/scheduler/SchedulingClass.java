@@ -1,11 +1,8 @@
 package com.indusind.scheduler;
 
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -20,12 +17,8 @@ import org.springframework.stereotype.Component;
 
 import com.couchbase.client.java.json.JsonObject;
 import com.indusind.config.CouchbaseConfig;
-import com.indusind.service.FileStoringLogicService;
-import com.indusind.utility.Utility;
+import com.indusind.service.DataUpdateService;
 import com.opencsv.CSVReader;
-import com.opencsv.CSVWriter;
-import com.opencsv.CSVWriterBuilder;
-import com.opencsv.ICSVWriter;
 
 @Component
 public class SchedulingClass {
@@ -33,9 +26,12 @@ public class SchedulingClass {
 
 	@Autowired
 	private CouchbaseConfig couchbaseConfig;
+//
+//	@Autowired
+//	private FileStoringLogicService fileStoringLogicService;
 
 	@Autowired
-	private FileStoringLogicService fileStoringLogicService;
+	private DataUpdateService dataUpdateService;
 
 	@Value("${batchSize}")
 	private Integer batchSize;
@@ -71,7 +67,7 @@ public class SchedulingClass {
 					try {
 						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
 								.collect(Collectors.toList());
-						updateGamData(acidList, batch);
+						dataUpdateService.updateGamData(acidList, batch);
 					} catch (Exception e) {
 						logger.error("Error processing batch from index {} to {}: {}", fromIndex, toIndex,
 								e.getMessage(), e);
@@ -86,7 +82,7 @@ public class SchedulingClass {
 
 //			List<String> acidList = listOfCSVFileData.stream().map(obj -> obj.getString("ACID"))
 //					.collect(Collectors.toList());
-//			updateGamData(acidList, listOfCSVFileData);
+//			dataUpdateService.updateGamData(acidList, listOfCSVFileData);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -94,86 +90,4 @@ public class SchedulingClass {
 
 	}
 
-	private void updateGamData(List<String> acidList, List<JsonObject> listOfCSVFileData) {
-
-		List<JsonObject> listAccClosedataFromGam = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
-				"SELECT IFMISSINGORNULL(ACCT_CLS_FLG, '') AS ACCT_CLS_FLG, ACID FROM "
-						+ couchbaseConfig.getGamCollectionName() + " USE KEYS $acidList",
-				JsonObject.create().put("acidList", acidList));
-		Map<String, String> gamMap = listAccClosedataFromGam.stream()
-				.collect(Collectors.toMap(obj -> obj.getString("ACID"), obj -> obj.getString("ACCT_CLS_FLG")));
-
-		// Update CSV data only if ACCT_CLS_FLG = "N"
-		for (JsonObject csvObj : listOfCSVFileData) {
-			String acid = csvObj.getString("ACID");
-			String acctClsFlg = gamMap.get(acid);
-			try {
-				if (null == acctClsFlg || acctClsFlg.isEmpty()) {
-					fileStoringLogicService.failedToUpdateFile(csvObj, "Data Not Found");
-					logger.info("Data Not Found With This ACID : {}", acid);
-				}
-
-				if ("N".equalsIgnoreCase(acctClsFlg)) {
-					Map<String, Object> csvObjMap = csvObj.toMap();
-					JsonObject queryParam = JsonObject.create().put("acid", acid)
-							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
-							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
-							.put("ACCT_CLS_DATE",
-									Utility.getDateString(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE"),
-											"yyyy-MM-dd HH:mm:ss"))
-
-							.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
-//							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))//Integer TS_CNT value
-							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""));
-
-					couchbaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
-							+ couchbaseConfig.getGamCollectionName()
-							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
-							queryParam);
-//					logger.info("Successfully updated Data : {}", csvObj);
-					fileStoringLogicService.successfullUpdateFile(queryParam);
-				} else {
-					fileStoringLogicService.failedToUpdateFile(csvObj, "ACCT_CLS_FLG is 'Y'");
-				}
-
-			} catch (Exception e) {
-				fileStoringLogicService.failedToUpdateFile(csvObj, e.getMessage());
-				logger.error("Failed to update : {} : {}", csvObj, e.getMessage(), e);
-			}
-		}
-	}
-
-	public static int safeParseInt(String value, int defaultValue) {
-		try {
-			value = value == null ? "" : value.trim();
-			return value.isEmpty() ? defaultValue : Integer.parseInt(value);
-		} catch (NumberFormatException e) {
-			return defaultValue;
-		}
-	}
-
-	public static void writeToCsv(List<JsonObject> dataList, String filePath) {
-		try (ICSVWriter writer = new CSVWriterBuilder(new FileWriter(filePath))
-				.withQuoteChar(CSVWriter.NO_QUOTE_CHARACTER).build()) {
-
-			// Write header
-			String[] header = { "ACID", "ENTITY_CRE_FLG", "ACCT_CLS_FLG", "ACCT_CLS_DATE", "FREZ_CODE", "TS_CNT" };
-			writer.writeNext(header);
-
-			// Write rows
-			for (JsonObject obj : dataList) {
-				String[] row = { String.valueOf(obj.get("acid")),
-						obj.getString("ENTITY_CRE_FLG") != null ? obj.getString("ENTITY_CRE_FLG") : "",
-						obj.getString("ACCT_CLS_FLG") != null ? obj.getString("ACCT_CLS_FLG") : "",
-						obj.getString("ACCT_CLS_DATE") != null ? obj.getString("ACCT_CLS_DATE") : "",
-						obj.getString("FREZ_CODE") != null ? obj.getString("FREZ_CODE") : "",
-						String.valueOf(obj.get("TS_CNT")) };
-				writer.writeNext(row);
-			}
-
-			logger.info("CSV file written to: {}" + filePath);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 }

@@ -61,8 +61,10 @@ public class DataUpdateService {
 									Utility.getDateString(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE"),
 											"yyyy-MM-dd HH:mm:ss"))
 
-							.put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
-//							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))//Integer TS_CNT value
+							// .put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
+							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))// Integer
+																												// TS_CNT
+																												// value
 							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""));
 
 					couchbaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
@@ -84,7 +86,8 @@ public class DataUpdateService {
 
 	public void gamDataWriteToCsv() {
 		List<JsonObject> dataList = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
-				"SELECT ACID, ENTITY_CRE_FLG, ACCT_CLS_FLG, ACCT_CLS_DATE, FREZ_CODE, TS_CNT FROM WHERE CIF_ID!='NULL' LIMIT 500",
+				"SELECT ACID, ENTITY_CRE_FLG, ACCT_CLS_FLG, ACCT_CLS_DATE, FREZ_CODE, TS_CNT FROM "
+						+ couchbaseConfig.getGamCollectionName() + " WHERE CIF_ID!='NULL' LIMIT 500",
 				null);
 		String filePath = System.getProperty("user.dir") + "/gamJsonfile.csv";
 		try (ICSVWriter writer = new CSVWriterBuilder(new FileWriter(filePath))
@@ -108,6 +111,15 @@ public class DataUpdateService {
 			logger.info("CSV file written to: {}" + filePath);
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static int safeParseInt(String value, int defaultValue) {
+		try {
+			value = value == null ? "" : value.trim();
+			return value.isEmpty() ? defaultValue : Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			return defaultValue;
 		}
 	}
 
