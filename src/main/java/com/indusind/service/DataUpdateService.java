@@ -1,35 +1,26 @@
-package com.indusind.scheduler;
+package com.indusind.service;
 
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.couchbase.client.java.json.JsonObject;
 import com.indusind.config.CouchbaseConfig;
-import com.indusind.service.FileStoringLogicService;
 import com.indusind.utility.Utility;
-import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.CSVWriterBuilder;
 import com.opencsv.ICSVWriter;
 
-@Component
-public class SchedulingClass {
-	private static final Logger logger = LoggerFactory.getLogger(SchedulingClass.class);
+@Service
+public class DataUpdateService {
 
 	@Autowired
 	private CouchbaseConfig couchbaseConfig;
@@ -40,61 +31,9 @@ public class SchedulingClass {
 	@Value("${batchSize}")
 	private Integer batchSize;
 
-	@Scheduled(fixedRate = 54000000) // 15hours
-	public void processService() {
-		logger.info("Scheduled");
-		String csvFile = couchbaseConfig.getCsvFileName();
-		List<JsonObject> listOfCSVFileData = new ArrayList<>();
+	private static final Logger logger = LoggerFactory.getLogger(DataUpdateService.class);
 
-		try (CSVReader reader = new CSVReader(new FileReader(System.getProperty("user.dir") + csvFile))) {
-			String[] headers = reader.readNext();
-			String[] row;
-
-			while ((row = reader.readNext()) != null) {
-				JsonObject json = JsonObject.create();
-
-				for (int i = 0; i < headers.length; i++) {
-					json.put(headers[i], row[i]);
-				}
-
-//				logger.info("JsonOutput : {}", json.toString());
-				listOfCSVFileData.add(json);
-			}
-			logger.info("listOfCSVFileData extraction is done");
-			ExecutorService executor = Executors.newFixedThreadPool(20);
-
-			for (int i = 0; i < listOfCSVFileData.size(); i += batchSize) {
-				int fromIndex = i;
-				int toIndex = Math.min(i + batchSize, listOfCSVFileData.size());
-				List<JsonObject> batch = new ArrayList<>(listOfCSVFileData.subList(fromIndex, toIndex));
-				executor.submit(() -> {
-					try {
-						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
-								.collect(Collectors.toList());
-						updateGamData(acidList, batch);
-					} catch (Exception e) {
-						logger.error("Error processing batch from index {} to {}: {}", fromIndex, toIndex,
-								e.getMessage(), e);
-					}
-				});
-				logger.info("Submitted batch from index {} to {}", fromIndex, toIndex);
-			}
-
-			executor.shutdown();
-			executor.awaitTermination(1, TimeUnit.HOURS);
-			logger.info("Process Completed");
-
-//			List<String> acidList = listOfCSVFileData.stream().map(obj -> obj.getString("ACID"))
-//					.collect(Collectors.toList());
-//			updateGamData(acidList, listOfCSVFileData);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
-
-	private void updateGamData(List<String> acidList, List<JsonObject> listOfCSVFileData) {
+	public void updateGamData(List<String> acidList, List<JsonObject> listOfCSVFileData) {
 
 		List<JsonObject> listAccClosedataFromGam = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
 				"SELECT IFMISSINGORNULL(ACCT_CLS_FLG, '') AS ACCT_CLS_FLG, ACID FROM "
@@ -143,16 +82,11 @@ public class SchedulingClass {
 		}
 	}
 
-	public static int safeParseInt(String value, int defaultValue) {
-		try {
-			value = value == null ? "" : value.trim();
-			return value.isEmpty() ? defaultValue : Integer.parseInt(value);
-		} catch (NumberFormatException e) {
-			return defaultValue;
-		}
-	}
-
-	public static void writeToCsv(List<JsonObject> dataList, String filePath) {
+	public void gamDataWriteToCsv() {
+		List<JsonObject> dataList = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
+				"SELECT ACID, ENTITY_CRE_FLG, ACCT_CLS_FLG, ACCT_CLS_DATE, FREZ_CODE, TS_CNT FROM WHERE CIF_ID!='NULL' LIMIT 500",
+				null);
+		String filePath = System.getProperty("user.dir") + "/gamJsonfile.csv";
 		try (ICSVWriter writer = new CSVWriterBuilder(new FileWriter(filePath))
 				.withQuoteChar(CSVWriter.NO_QUOTE_CHARACTER).build()) {
 
@@ -176,4 +110,5 @@ public class SchedulingClass {
 			e.printStackTrace();
 		}
 	}
+
 }

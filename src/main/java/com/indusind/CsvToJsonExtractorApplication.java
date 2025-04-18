@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication(exclude = {
 		org.springframework.boot.autoconfigure.couchbase.CouchbaseAutoConfiguration.class }, scanBasePackages = "com.indusind")
-//@SpringBootApplication(scanBasePackages = "com.indusind")
 public class CsvToJsonExtractorApplication {
 	public static void main(String[] args) {
 		System.setProperty("logging.level.org.springframework.integration", "DEBUG");
