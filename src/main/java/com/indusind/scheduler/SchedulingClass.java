@@ -35,6 +35,9 @@ public class SchedulingClass {
 	@Value("${batchSize}")
 	private Integer batchSize;
 
+	@Value("${characterForCSV}")
+	private Character characterForCSV;
+
 	@Scheduled(fixedRate = 54000000) // 15hours
 	public void processService() {
 		logger.info("Scheduled");
@@ -42,7 +45,7 @@ public class SchedulingClass {
 		List<JsonObject> listOfCSVFileData = new ArrayList<>();
 
 		try (CSVReader reader = new CSVReaderBuilder(new FileReader(System.getProperty("user.dir") + csvFile))
-				.withCSVParser(new CSVParserBuilder().withSeparator(',').build()).build()) {
+				.withCSVParser(new CSVParserBuilder().withSeparator(characterForCSV).build()).build()) {
 			String[] headers = reader.readNext();
 			String[] row;
 

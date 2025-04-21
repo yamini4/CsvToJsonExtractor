@@ -55,21 +55,18 @@ public class DataUpdateService {
 				if ("N".equalsIgnoreCase(acctClsFlg)) {
 					Map<String, Object> csvObjMap = csvObj.toMap();
 					JsonObject queryParam = JsonObject.create().put("acid", acid)
-							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", ""))
-							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
-							.put("ACCT_CLS_DATE",
+							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", "")).put("ACCT_CLS_DATE",
 									Utility.getDateString(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE"),
-											"yyyy-MM-dd HH:mm:ss"))
+											"yyyy-MM-dd HH:mm:ss"));
+//							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
 
-							// .put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
-							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))// Integer
-																												// TS_CNT
-																												// value
-							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""));
+					// .put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
+//							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))
+//							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""));
 
 					couchbaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
 							+ couchbaseConfig.getGamCollectionName()
-							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ENTITY_CRE_FLG = $ENTITY_CRE_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE, FREZ_CODE = $FREZ_CODE, TS_CNT = $TS_CNT",
+							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE",
 							queryParam);
 //					logger.info("Successfully updated Data : {}", csvObj);
 					fileStoringLogicService.successfullUpdateFile(queryParam);
