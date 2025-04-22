@@ -27,6 +27,9 @@ public class DataUpdateService {
 
 	@Autowired
 	private FileStoringLogicService fileStoringLogicService;
+	
+	@Autowired
+	Utility utility;
 
 	@Value("${batchSize}")
 	private Integer batchSize;
@@ -34,6 +37,7 @@ public class DataUpdateService {
 	private static final Logger logger = LoggerFactory.getLogger(DataUpdateService.class);
 
 	public void updateGamData(List<String> acidList, List<JsonObject> listOfCSVFileData) {
+
 
 		List<JsonObject> listAccClosedataFromGam = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
 				"SELECT IFMISSINGORNULL(ACCT_CLS_FLG, '') AS ACCT_CLS_FLG, ACID FROM "
@@ -56,8 +60,7 @@ public class DataUpdateService {
 					Map<String, Object> csvObjMap = csvObj.toMap();
 					JsonObject queryParam = JsonObject.create().put("acid", acid)
 							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", "")).put("ACCT_CLS_DATE",
-									Utility.getDateString(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE"),
-											"yyyy-MM-dd HH:mm:ss"));
+									utility.getParsedDate(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE")));
 //							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
 
 					// .put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
