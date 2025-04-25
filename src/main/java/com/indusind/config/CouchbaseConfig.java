@@ -39,6 +39,10 @@ public class CouchbaseConfig {
 	@Getter
 	@Value("${spring.couchbase.collection.fin_gam.name}")
 	private String gamCollectionName;
+	
+	@Getter
+	@Value("${spring.couchbase.collection.fin_customers.name}")
+	private String finCustomerCollectionName;
 
 	@Getter
 	@Value("${csvFileName}")
