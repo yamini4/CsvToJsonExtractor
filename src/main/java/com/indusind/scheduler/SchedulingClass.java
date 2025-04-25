@@ -68,9 +68,15 @@ public class SchedulingClass {
 				List<JsonObject> batch = new ArrayList<>(listOfCSVFileData.subList(fromIndex, toIndex));
 				executor.submit(() -> {
 					try {
-						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
+						// fin_gam update logic
+//						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
+//								.collect(Collectors.toList());
+//						dataUpdateService.updateGamData(acidList, batch);
+
+						// fin_customer update logic
+						List<String> cifList = batch.stream().map(obj -> obj.getString("ORGKEY"))
 								.collect(Collectors.toList());
-						dataUpdateService.updateGamData(acidList, batch);
+						dataUpdateService.updateFinCustomerData(cifList, batch);
 					} catch (Exception e) {
 						logger.error("Error processing batch from index {} to {}: {}", fromIndex, toIndex,
 								e.getMessage(), e);

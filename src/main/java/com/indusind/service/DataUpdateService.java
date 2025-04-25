@@ -141,10 +141,10 @@ public class DataUpdateService {
 
 				}
 				Map<String, Object> csvObjMap = csvObj.toMap();
-				JsonObject queryParam = JsonObject.create()
+				JsonObject queryParam = JsonObject.create().put("ORGKEY", ORGKEY)
 						.put("CUST_FIRST_NAME", csvObjMap.getOrDefault("CUST_FIRST_NAME", ""))
 						.put("CUST_LAST_NAME", csvObjMap.getOrDefault("CUST_LAST_NAME", ""))
-						.put("CUST_MIDDLE_NAME", csvObjMap.getOrDefault("CUST_MIDDLE_NAME", "")).put("ORGKEY", ORGKEY)
+						.put("CUST_MIDDLE_NAME", csvObjMap.getOrDefault("CUST_MIDDLE_NAME", ""))
 						.put("RISK_PROFILE_SCORE", csvObjMap.getOrDefault("RISK_PROFILE_SCORE", ""))
 						.put("BLACKLISTED", csvObjMap.getOrDefault("BLACKLISTED", ""))
 						.put("ENTITY_CRE_FLAG", csvObjMap.getOrDefault("ENTITY_CRE_FLAG", ""))
