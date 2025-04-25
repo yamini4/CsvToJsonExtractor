@@ -125,42 +125,50 @@ public class DataUpdateService {
 	public void updateFinCustomerData(List<String> cifList, List<JsonObject> listOfCSVFileData) {
 
 		List<JsonObject> listAccClosedataFromGam = couchbaseConfig.getQueryResultCustomerMasterV6Scope(
-				"SELECT IFMISSINGORNULL(ACCT_CLS_FLG, '') AS ACCT_CLS_FLG, ACID FROM "
-						+ couchbaseConfig.getFinCustomerCollectionName() + " USE KEYS $acidList",
-				JsonObject.create().put("acidList", cifList));
-		Map<String, String> gamMap = listAccClosedataFromGam.stream()
-				.collect(Collectors.toMap(obj -> obj.getString("ACID"), obj -> obj.getString("ACCT_CLS_FLG")));
+				"SELECT CUST_FIRST_NAME,CUST_LAST_NAME,CUST_MIDDLE_NAME,ORGKEY,RISK_PROFILE_SCORE,BLACKLISTED,ENTITY_CRE_FLAG,CUST_TYPE,SUSPENDED,SEGMENTATION_CLASS,CONSTITUTION_CODE,CUSTOMERMINOR,ADDRESS_LINE1,ADDRESS_LINE2,ADDRESS_LINE3,STAFFFLAG,CUSTOMERNREFLG,DATEUSERFIELD5,DATEUSERFIELD4,CORP_ID,SUSPEND_REASON FROM "
+						+ couchbaseConfig.getFinCustomerCollectionName() + " USE KEYS $cifList",
+				JsonObject.create().put("cifList", cifList));
+		Map<String, JsonObject> customerMap = listAccClosedataFromGam.stream()
+				.collect(Collectors.toMap(obj -> obj.getString("ORGKEY"), obj -> obj));
 
 		// Update CSV data only if ACCT_CLS_FLG = "N"
 		for (JsonObject csvObj : listOfCSVFileData) {
-			String acid = csvObj.getString("ACID");
-			String acctClsFlg = gamMap.get(acid);
+			String ORGKEY = csvObj.getString("ORGKEY");
+
 			try {
-				if (null == acctClsFlg || acctClsFlg.isEmpty()) {
-					fileStoringLogicService.failedToUpdateFile(csvObj, "Data Not Found");
-					logger.info("Data Not Found With This ACID : {}", acid);
+				if (!customerMap.containsKey(ORGKEY)) {
+					fileStoringLogicService.failedToUpdateFile(csvObj, "ORGKEY not aviable in capella");
+
 				}
+				Map<String, Object> csvObjMap = csvObj.toMap();
+				JsonObject queryParam = JsonObject.create()
+						.put("CUST_FIRST_NAME", csvObjMap.getOrDefault("CUST_FIRST_NAME", ""))
+						.put("CUST_LAST_NAME", csvObjMap.getOrDefault("CUST_LAST_NAME", ""))
+						.put("CUST_MIDDLE_NAME", csvObjMap.getOrDefault("CUST_MIDDLE_NAME", "")).put("ORGKEY", ORGKEY)
+						.put("RISK_PROFILE_SCORE", csvObjMap.getOrDefault("RISK_PROFILE_SCORE", ""))
+						.put("BLACKLISTED", csvObjMap.getOrDefault("BLACKLISTED", ""))
+						.put("ENTITY_CRE_FLAG", csvObjMap.getOrDefault("ENTITY_CRE_FLAG", ""))
+						.put("CUST_TYPE", csvObjMap.getOrDefault("CUST_TYPE", ""))
+						.put("SUSPENDED", csvObjMap.getOrDefault("SUSPENDED", ""))
+						.put("SEGMENTATION_CLASS", csvObjMap.getOrDefault("SEGMENTATION_CLASS", ""))
+						.put("CONSTITUTION_CODE", csvObjMap.getOrDefault("CONSTITUTION_CODE", ""))
+						.put("CUSTOMERMINOR", csvObjMap.getOrDefault("CUSTOMERMINOR", ""))
+						.put("ADDRESS_LINE1", csvObjMap.getOrDefault("ADDRESS_LINE1", ""))
+						.put("ADDRESS_LINE2", csvObjMap.getOrDefault("ADDRESS_LINE2", ""))
+						.put("ADDRESS_LINE3", csvObjMap.getOrDefault("ADDRESS_LINE3", ""))
+						.put("STAFFFLAG", csvObjMap.getOrDefault("STAFFFLAG", ""))
+						.put("CUSTOMERNREFLG", csvObjMap.getOrDefault("CUSTOMERNREFLG", ""))
+						.put("DATEUSERFIELD5", csvObjMap.getOrDefault("DATEUSERFIELD5", ""))
+						.put("DATEUSERFIELD4", csvObjMap.getOrDefault("DATEUSERFIELD4", ""))
+						.put("CORP_ID", csvObjMap.getOrDefault("CORP_ID", ""))
+						.put("SUSPEND_REASON", csvObjMap.getOrDefault("SUSPEND_REASON", ""));
 
-				if ("N".equalsIgnoreCase(acctClsFlg)) {
-					Map<String, Object> csvObjMap = csvObj.toMap();
-					JsonObject queryParam = JsonObject.create().put("acid", acid)
-							.put("ACCT_CLS_FLG", csvObjMap.getOrDefault("ACCT_CLS_FLG", "")).put("ACCT_CLS_DATE",
-									utility.getParsedDate(Utility.getTrimmedValue(csvObjMap, "ACCT_CLS_DATE")));
-//							.put("ENTITY_CRE_FLG", csvObjMap.getOrDefault("ENTITY_CRE_FLG", ""))
-
-					// .put("TS_CNT", csvObjMap.getOrDefault("TS_CNT", 0))// String TS_CNT value
-//							.put("TS_CNT", safeParseInt(csvObjMap.getOrDefault("TS_CNT", "0").toString(), 0))
-//							.put("FREZ_CODE", csvObjMap.getOrDefault("FREZ_CODE", ""));
-
-					couchbaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
-							+ couchbaseConfig.getGamCollectionName()
-							+ " USE KEYS $acid SET ACCT_CLS_FLG = $ACCT_CLS_FLG, ACCT_CLS_DATE = $ACCT_CLS_DATE",
-							queryParam);
+				couchbaseConfig.getQueryResultCustomerMasterV6Scope("UPDATE "
+						+ couchbaseConfig.getFinCustomerCollectionName()
+						+ " USE KEYS $ORGKEY SET CUST_FIRST_NAME=$CUST_FIRST_NAME,CUST_LAST_NAME=$CUST_LAST_NAME,CUST_MIDDLE_NAME=$CUST_MIDDLE_NAME,ORGKEY=$ORGKEY,RISK_PROFILE_SCORE=$RISK_PROFILE_SCORE,BLACKLISTED=$BLACKLISTED,ENTITY_CRE_FLAG=$ENTITY_CRE_FLAG,CUST_TYPE=$CUST_TYPE,SUSPENDED=$SUSPENDED,SEGMENTATION_CLASS=$SEGMENTATION_CLASS,CONSTITUTION_CODE=$CONSTITUTION_CODE,CUSTOMERMINOR=$CUSTOMERMINOR,ADDRESS_LINE1=$ADDRESS_LINE1,ADDRESS_LINE2=$ADDRESS_LINE2,ADDRESS_LINE3=$ADDRESS_LINE3,STAFFFLAG=$STAFFFLAG,CUSTOMERNREFLG=$CUSTOMERNREFLG,DATEUSERFIELD5=$DATEUSERFIELD5,DATEUSERFIELD4=$DATEUSERFIELD4,CORP_ID=$CORP_ID,SUSPEND_REASON=$SUSPEND_REASON",
+						queryParam);
 //					logger.info("Successfully updated Data : {}", csvObj);
-					fileStoringLogicService.successfullUpdateFile(queryParam);
-				} else {
-					fileStoringLogicService.failedToUpdateFile(csvObj, "ACCT_CLS_FLG is 'Y'");
-				}
+				fileStoringLogicService.successfullUpdateFile(queryParam);
 
 			} catch (Exception e) {
 				fileStoringLogicService.failedToUpdateFile(csvObj, e.getMessage());
