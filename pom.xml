@@ -10,9 +10,9 @@
 		<relativePath />
 	</parent>
 	<groupId>com.indusind</groupId>
-	<artifactId>csvToJsonExtractor</artifactId>
-	<version>0.0.3</version>
-	<name>CsvToJsonExtractor</name>
+	<artifactId>accountDataCorrection</artifactId>
+	<version>0.0.1</version>
+	<name>accountDataCorrection</name>
 	<description>Csv to Json Extractor</description>
 	<url />
 	<licenses>

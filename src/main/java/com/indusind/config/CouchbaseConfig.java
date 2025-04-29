@@ -39,10 +39,6 @@ public class CouchbaseConfig {
 	@Getter
 	@Value("${spring.couchbase.collection.fin_gam.name}")
 	private String gamCollectionName;
-	
-	@Getter
-	@Value("${spring.couchbase.collection.fin_customers.name}")
-	private String finCustomerCollectionName;
 
 	@Getter
 	@Value("${csvFileName}")
@@ -50,7 +46,7 @@ public class CouchbaseConfig {
 
 	private Cluster cluster;
 	private Bucket iCacheBucket;
-	private Scope indusauthScope;
+	private Scope customerMasterScope;
 
 	private static final Logger logger = LoggerFactory.getLogger(CouchbaseConfig.class);
 
@@ -84,7 +80,7 @@ public class CouchbaseConfig {
 			this.iCacheBucket = cluster.bucket(bucketName);
 			this.iCacheBucket.waitUntilReady(Duration.ofSeconds(60));
 
-			this.indusauthScope = iCacheBucket.scope(scopeName);
+			this.customerMasterScope = iCacheBucket.scope(scopeName);
 			logger.info("Couchbase connection established successfully.");
 		} catch (Exception e) {
 			logger.error("Error initializing Couchbase: {}", e.getMessage());
@@ -92,12 +88,8 @@ public class CouchbaseConfig {
 		}
 	}
 
-	public Scope getScope() {
-		return indusauthScope;
-	}
-
 	public List<JsonObject> getQueryResultCustomerMasterV6Scope(String query, JsonObject parameters) {
-		return indusauthScope.query(query, QueryOptions.queryOptions().adhoc(false).parameters(parameters))
+		return customerMasterScope.query(query, QueryOptions.queryOptions().adhoc(false).parameters(parameters))
 				.rowsAsObject();
 	}
 }

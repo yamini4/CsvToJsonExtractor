@@ -69,14 +69,10 @@ public class SchedulingClass {
 				executor.submit(() -> {
 					try {
 						// fin_gam update logic
-//						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
-//								.collect(Collectors.toList());
-//						dataUpdateService.updateGamData(acidList, batch);
-
-						// fin_customer update logic
-						List<String> cifList = batch.stream().map(obj -> obj.getString("ORGKEY"))
+						List<String> acidList = batch.stream().map(obj -> obj.getString("ACID"))
 								.collect(Collectors.toList());
-						dataUpdateService.updateFinCustomerData(cifList, batch);
+						dataUpdateService.updateGamData(acidList, batch);
+
 					} catch (Exception e) {
 						logger.error("Error processing batch from index {} to {}: {}", fromIndex, toIndex,
 								e.getMessage(), e);
